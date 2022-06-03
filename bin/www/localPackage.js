@@ -26,6 +26,7 @@ var NativeAppInfo = require("./nativeAppInfo");
 var FileUtil = require("./fileUtil");
 var CodePushUtil = require("./codePushUtil");
 var Sdk = require("./sdk");
+var isAndroid = window.cordova && window.cordova.platformId === "android";
 var LocalPackage = (function (_super) {
     __extends(LocalPackage, _super);
     function LocalPackage() {
@@ -70,7 +71,7 @@ var LocalPackage = (function (_super) {
                             installError && installError(innerError);
                             return;
                         }
-                        zip.unzip(_this.localPath, unzipDir.toInternalURL(), newPackageUnzipped);
+                        zip.unzip(_this.localPath, isAndroid ? unzipDir.nativeURL : unzipDir.toInternalURL(), newPackageUnzipped);
                     });
                 };
                 if (!error && !!directoryEntry) {

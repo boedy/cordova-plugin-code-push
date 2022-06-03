@@ -12,6 +12,8 @@ import NativeAppInfo = require("./nativeAppInfo");
 import CodePushUtil = require("./codePushUtil");
 import Sdk = require("./sdk");
 
+const isAndroid = window.cordova && window.cordova.platformId === "android";
+
 /**
  * Defines a remote package, which represents an update package available for download.
  */
@@ -79,7 +81,7 @@ class RemotePackage extends Package implements IRemotePackage {
                             localPackage.packageHash = this.packageHash;
                             localPackage.isFirstRun = false;
                             localPackage.failedInstall = installFailed;
-                            localPackage.localPath = fileEntry.toInternalURL();
+                            localPackage.localPath = isAndroid ? fileEntry.nativeURL : fileEntry.toInternalURL();
 
                             CodePushUtil.logMessage("Package download success: " + JSON.stringify(localPackage));
                             successCallback && successCallback(localPackage);

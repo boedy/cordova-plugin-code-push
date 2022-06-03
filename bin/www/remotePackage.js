@@ -27,6 +27,7 @@ var FileUtil = require("./fileUtil");
 var NativeAppInfo = require("./nativeAppInfo");
 var CodePushUtil = require("./codePushUtil");
 var Sdk = require("./sdk");
+var isAndroid = window.cordova && window.cordova.platformId === "android";
 var RemotePackage = (function (_super) {
     __extends(RemotePackage, _super);
     function RemotePackage() {
@@ -67,7 +68,7 @@ var RemotePackage = (function (_super) {
                             localPackage.packageHash = _this.packageHash;
                             localPackage.isFirstRun = false;
                             localPackage.failedInstall = installFailed;
-                            localPackage.localPath = fileEntry.toInternalURL();
+                            localPackage.localPath = isAndroid ? fileEntry.nativeURL : fileEntry.toInternalURL();
                             CodePushUtil.logMessage("Package download success: " + JSON.stringify(localPackage));
                             successCallback && successCallback(localPackage);
                             Sdk.reportStatusDownload(localPackage, localPackage.deploymentKey);
