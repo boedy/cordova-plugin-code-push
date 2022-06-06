@@ -17,18 +17,14 @@ import org.apache.cordova.CordovaWebView;
 import org.json.JSONException;
 
 import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Date;
 import java.util.Map;
@@ -302,12 +298,13 @@ public class CodePush extends CordovaPlugin {
             final InstallMode installMode = InstallMode.fromValue(args.optInt(1));
             final int minimumBackgroundDuration = args.optInt(2);
 
-            File startPage = this.getStartPageForPackage(startLocation);
-            if (startPage != null) {
+            if (hasPackage(startLocation)) {
                 /* start page file exists */
                 /* navigate to the start page */
                 if (InstallMode.IMMEDIATE.equals(installMode)) {
-                    this.navigateToFile(startPage);
+                    this.navigateToURL(
+                        this.getStartPageURLForPackage(startLocation)
+                    );
                     markUpdate();
                 } else {
                     InstallOptions pendingInstall = new InstallOptions(installMode, minimumBackgroundDuration);
@@ -419,11 +416,13 @@ public class CodePush extends CordovaPlugin {
     private void navigateToLocalDeploymentIfExists() {
         CodePushPackageMetadata deployedPackageMetadata = this.codePushPackageManager.getCurrentPackageMetadata();
         if (deployedPackageMetadata != null && deployedPackageMetadata.localPath != null) {
-            File startPage = this.getStartPageForPackage(deployedPackageMetadata.localPath);
-            if (startPage != null && this.isMainBundleActivity()) {
+            Boolean hasStartPage = this.hasPackage(deployedPackageMetadata.localPath);
+            if (hasStartPage && this.isMainBundleActivity()) {
                 /* file exists */
                 try {
-                    navigateToFile(startPage);
+                    navigateToURL(
+                        this.getStartPageURLForPackage(deployedPackageMetadata.localPath)
+                    );
                 } catch (MalformedURLException e) {
                     /* empty - if there is an exception, the app will launch with the bundled content */
                 }
@@ -542,6 +541,15 @@ public class CodePush extends CordovaPlugin {
         }
     }
 
+    private Boolean hasPackage(String packageLocation) {
+        if (packageLocation != null) {
+            File startPage = new File(this.cordova.getActivity().getFilesDir() + packageLocation, "www/" + getConfigStartPageName());
+            return startPage.exists();
+        }
+
+        return false;
+    }
+
     private File getStartPageForPackage(String packageLocation) {
         if (packageLocation != null) {
             File startPage = new File(this.cordova.getActivity().getFilesDir() + packageLocation, "www/" + getConfigStartPageName());
@@ -555,6 +563,11 @@ public class CodePush extends CordovaPlugin {
 
     private String getStartPageURLForPackage(String packageLocation) throws MalformedURLException {
         String result = null;
+        String launchUrl = this.getConfigLaunchUrl();
+        String localhost = "https://localhost/";
+        if (launchUrl.startsWith(localhost)) {
+            return localhost + "__cdvfile_files__" + packageLocation + "www/" + getConfigStartPageName();
+        }
         File startPageFile = getStartPageForPackage(packageLocation);
         if (startPageFile != null) {
             result = startPageFile.toURI().toURL().toString();
@@ -565,7 +578,11 @@ public class CodePush extends CordovaPlugin {
 
     private String getConfigStartPageName() {
         String launchUrl = this.getConfigLaunchUrl();
+        String localhost = "https://localhost/";
         int launchUrlLength = launchUrl.length();
+        if (launchUrl.startsWith(localhost)) {
+            launchUrl = launchUrl.substring(localhost.length(), launchUrlLength);
+        }
         if (launchUrl.startsWith(CodePush.WWW_ASSET_PATH_PREFIX)) {
             launchUrl = launchUrl.substring(CodePush.WWW_ASSET_PATH_PREFIX.length(), launchUrlLength);
         }
